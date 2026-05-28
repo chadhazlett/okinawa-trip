@@ -200,6 +200,37 @@
   .leaflet-popup-content b{font-size:.98rem;}
   .leaflet-popup-content .cat{text-transform:uppercase;letter-spacing:.1em;font-size:.64rem;font-weight:700;}
 
+  /* ---- Numbered map pins + legend ---- */
+  .numpin{background:transparent;border:none;}
+  .numpin span{
+    display:flex;align-items:center;justify-content:center;
+    width:26px;height:26px;border-radius:50%;border:2px solid var(--ink);
+    font-family:"Helvetica Neue",Arial,sans-serif;font-weight:700;font-size:.8rem;
+    box-shadow:0 1px 3px rgba(14,74,87,.45);
+  }
+  #maplegend{
+    margin:18px 0 0;display:grid;gap:18px 26px;
+    grid-template-columns:repeat(auto-fit,minmax(210px,1fr));
+    font-family:"Helvetica Neue",Arial,sans-serif;
+  }
+  .leg-group h4{
+    margin:0 0 6px;font-size:.66rem;font-weight:700;letter-spacing:.16em;
+    text-transform:uppercase;color:var(--sea-deep);
+    border-bottom:1px solid var(--line);padding-bottom:5px;
+  }
+  .leg-item{
+    display:flex;align-items:center;gap:9px;width:100%;
+    background:none;border:none;padding:5px 4px;cursor:pointer;text-align:left;
+    border-radius:4px;color:var(--ink);font-size:.9rem;font-family:inherit;
+    transition:background .15s;
+  }
+  .leg-item:hover{background:rgba(29,111,128,.1);}
+  .leg-num{
+    flex:none;display:flex;align-items:center;justify-content:center;
+    width:23px;height:23px;border-radius:50%;border:1.5px solid var(--ink);
+    font-size:.74rem;font-weight:700;
+  }
+
   /* ---- Footer ---- */
   footer{margin-top:54px;border-top:3px solid var(--ink);background:var(--sea-deep);color:var(--paper);}
   footer .wrap{padding:30px 22px;}
@@ -256,7 +287,7 @@
         <p>Larger rooms than you'd expect in Japan, international breakfast, helpful English-speaking staff, and a stone's throw from Kokusai-dori and Makishi Market. The reliable "everyone's comfortable" choice.</p>
         <div class="price"><span class="num">~$130–200</span> / night <span class="approx">very rough</span></div>
         <div class="why">Best balance of space + location for a multi-generation group.</div>
-        <div class="links"><a href="https://maps.google.com/?cid=8301034830577648922" target="_blank">Map ↗</a></div>
+        <div class="links"><a href="#map" class="maplink" data-place="0">Show on map ↓</a></div>
       </div>
       <div class="card tag-stay">
         <h3>Hotel Palm Royal Resort <span class="pill">Pool</span></h3>
@@ -264,7 +295,7 @@
         <p>Recently refreshed rooms, a small pool with a restaurant, and a side-street spot that keeps the street noise down while staying steps from the action. Convenience stores all around.</p>
         <div class="price"><span class="num">~$90–150</span> / night <span class="approx">very rough</span></div>
         <div class="why">A pool for the 8-year-old + walkable; good mid-range value.</div>
-        <div class="links"><a href="https://maps.google.com/?cid=14029006150810542589" target="_blank">Map ↗</a></div>
+        <div class="links"><a href="#map" class="maplink" data-place="1">Show on map ↓</a></div>
       </div>
       <div class="card tag-stay">
         <h3>Loisir Hotel Naha</h3>
@@ -272,7 +303,7 @@
         <p>Bigger, resort-style hotel with an on-site hot-spring bath and spacious rooms, closest to the airport. A little further from Kokusai-dori (a short taxi or ~15-min walk), so the trade is space-and-amenities vs. being right on the street.</p>
         <div class="price"><span class="num">~$110–170</span> / night <span class="approx">very rough</span></div>
         <div class="why">Pick if we want a bath/onsen and more room to spread out.</div>
-        <div class="links"><a href="https://maps.google.com/?cid=11257430556716490759" target="_blank">Map ↗</a></div>
+        <div class="links"><a href="#map" class="maplink" data-place="2">Show on map ↓</a></div>
       </div>
     </div>
     <div class="note"><b>On the prices:</b> these are <b>very rough ballparks</b> for a base room — they'll shift a lot by room type, exact dates, and how far ahead we book, and July (peak + typhoon season) runs high. Treat them as relative signposts, not quotes; we'll get real numbers when we actually book, and should favor refundable rates and reserve early.</div>
@@ -470,7 +501,8 @@
     </div>
     <p class="sec-blurb">Color-coded by who it's for. The tight cluster in central Naha is our walkable base; the pins fanning north and west are day-trips and dive sites.</p>
     <div id="map"></div>
-    <p class="map-cap">Tap any pin for details. Purple = lodging · Gold = Ahma &amp; Yehyeh · Green = everybody · Coral = Chad's dives.</p>
+    <p class="map-cap">Each pin is numbered — match it to the list below, or tap a name to fly to it. Purple = lodging · Gold = Ahma &amp; Yehyeh · Green = everybody · Coral = Chad's dives.</p>
+    <div id="maplegend"></div>
   </section>
 
 </div>
@@ -485,6 +517,8 @@
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
   var COLORS={stay:"#8a5a78",inlaw:"#e8b04b",family:"#5a9e7a",dive:"#d9603b"};
+  var TXT={stay:"#fff",inlaw:"#13202b",family:"#fff",dive:"#fff"};
+  var LABELS={stay:"Where we stay",inlaw:"Ahma & Yehyeh",family:"Everybody",dive:"Chad's dives"};
   var places=[
     // STAY
     {n:"Hyatt Regency Naha",c:"stay",lat:26.2144647,lng:127.6899541,d:"Where we stay · ★4.4 · block off Kokusai-dori"},
@@ -513,18 +547,63 @@
     attribution:'© OpenStreetMap · © CARTO',maxZoom:19
   }).addTo(map);
 
-  var bounds=[];
-  places.forEach(function(p){
-    var col=COLORS[p.c];
-    var marker=L.circleMarker([p.lat,p.lng],{
-      radius:9,fillColor:col,color:"#13202b",weight:2,opacity:1,fillOpacity:.92
-    }).addTo(map);
-    marker.bindPopup('<span class="cat" style="color:'+col+'">'+p.c.toUpperCase()+'</span><br><b>'+p.n+'</b><br>'+p.d);
+  var markers=[], bounds=[];
+  places.forEach(function(p,i){
+    var col=COLORS[p.c], num=i+1;
+    var icon=L.divIcon({
+      className:'numpin',
+      html:'<span style="background:'+col+';color:'+TXT[p.c]+'">'+num+'</span>',
+      iconSize:[26,26],iconAnchor:[13,13],popupAnchor:[0,-13]
+    });
+    var marker=L.marker([p.lat,p.lng],{icon:icon,title:num+'. '+p.n}).addTo(map);
+    marker.bindPopup('<span class="cat" style="color:'+col+'">'+num+' · '+p.c.toUpperCase()+'</span><br><b>'+p.n+'</b><br>'+p.d);
     marker.on('mouseover',function(){this.openPopup();});
+    markers.push(marker);
     bounds.push([p.lat,p.lng]);
   });
   map.fitBounds(bounds,{padding:[40,40]});
   map.once('focus',function(){map.scrollWheelZoom.enable();});
+
+  function focusPlace(i){
+    var p=places[i];
+    map.setView([p.lat,p.lng],Math.max(map.getZoom(),14),{animate:true});
+    markers[i].openPopup();
+  }
+
+  // Build the legend from the same places list so it always stays in sync.
+  (function(){
+    var leg=document.getElementById('maplegend');
+    if(!leg) return;
+    ['stay','inlaw','family','dive'].forEach(function(cat){
+      var g=document.createElement('div');
+      g.className='leg-group';
+      var h=document.createElement('h4');
+      h.textContent=LABELS[cat];
+      g.appendChild(h);
+      places.forEach(function(p,i){
+        if(p.c!==cat) return;
+        var b=document.createElement('button');
+        b.className='leg-item'; b.type='button';
+        b.innerHTML='<span class="leg-num" style="background:'+COLORS[cat]+';color:'+TXT[cat]+'">'+(i+1)+'</span><span class="leg-name"></span>';
+        b.querySelector('.leg-name').textContent=p.n;
+        b.addEventListener('click',function(){
+          document.getElementById('map').scrollIntoView({behavior:'smooth',block:'center'});
+          focusPlace(i);
+        });
+        g.appendChild(b);
+      });
+      leg.appendChild(g);
+    });
+  })();
+
+  // Hotel "Show on map" links fly to the matching pin instead of leaving the page.
+  document.querySelectorAll('.maplink').forEach(function(a){
+    a.addEventListener('click',function(e){
+      e.preventDefault();
+      document.getElementById('map').scrollIntoView({behavior:'smooth',block:'center'});
+      focusPlace(parseInt(a.getAttribute('data-place'),10));
+    });
+  });
 </script>
 </body>
 </html>
