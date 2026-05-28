@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Okinawa · Family Trip Plan</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<style>
+  :root{
+    --ink:#13202b;
+    --paper:#f4ede0;
+    --paper-deep:#e8dcc8;
+    --sea:#1d6f80;
+    --sea-deep:#0e4a57;
+    --coral:#d9603b;
+    --coral-soft:#e8916f;
+    --sun:#e8b04b;
+    --reef:#5a9e7a;
+    --plum:#8a5a78;
+    --line:rgba(19,32,43,.14);
+    --shadow:0 1px 0 rgba(19,32,43,.05), 0 18px 40px -24px rgba(14,74,87,.5);
+  }
+  *{box-sizing:border-box;}
+  html{scroll-behavior:smooth;}
+  body{
+    margin:0;
+    background:var(--paper);
+    color:var(--ink);
+    font-family:"Iowan Old Style","Palatino Linotype",Palatino,Georgia,serif;
+    line-height:1.62;
+    -webkit-font-smoothing:antialiased;
+  }
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    background-image:radial-gradient(rgba(19,32,43,.025) 1px,transparent 1px);
+    background-size:4px 4px;mix-blend-mode:multiply;
+  }
+  .wrap{max-width:1080px;margin:0 auto;padding:0 22px;position:relative;z-index:1;}
+
+  /* ---- Header ---- */
+  header.hero{
+    position:relative;overflow:hidden;
+    background:
+      linear-gradient(180deg,rgba(14,74,87,.0)0%,rgba(14,74,87,.18)100%),
+      linear-gradient(135deg,var(--sea-deep)0%,var(--sea)52%,#2a8a93 100%);
+    color:var(--paper);
+    border-bottom:3px solid var(--ink);
+  }
+  header.hero::after{
+    content:"";position:absolute;left:0;right:0;bottom:-2px;height:46px;
+    background:
+      radial-gradient(circle at 12px -6px,transparent 14px,var(--paper) 15px) repeat-x;
+    background-size:30px 46px;
+  }
+  .hero-inner{padding:64px 22px 92px;max-width:1080px;margin:0 auto;position:relative;}
+  .kicker{
+    font-family:"Helvetica Neue",Arial,sans-serif;
+    text-transform:uppercase;letter-spacing:.42em;font-size:.66rem;font-weight:700;
+    color:var(--sun);margin:0 0 18px;
+  }
+  .hero h1{
+    font-size:clamp(2.8rem,8vw,5.4rem);line-height:.96;margin:0;font-weight:400;
+    letter-spacing:-.01em;
+  }
+  .hero h1 em{font-style:italic;color:var(--sun);}
+  .hero p.sub{
+    font-size:clamp(1.05rem,2.4vw,1.32rem);max-width:34ch;margin:22px 0 0;
+    color:rgba(244,237,224,.9);
+  }
+  .stamp{
+    position:absolute;top:54px;right:22px;width:118px;height:118px;border-radius:50%;
+    border:2px solid var(--sun);color:var(--sun);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;
+    transform:rotate(-11deg);text-align:center;
+    font-family:"Helvetica Neue",Arial,sans-serif;
+  }
+  .stamp .b{font-size:1.5rem;font-weight:700;letter-spacing:.04em;line-height:1;}
+  .stamp .s{font-size:.54rem;letter-spacing:.24em;text-transform:uppercase;margin-top:6px;}
+  @media(max-width:620px){.stamp{display:none;}}
+
+  /* ---- Nav ---- */
+  nav.toc{
+    position:sticky;top:0;z-index:50;background:var(--paper-deep);
+    border-bottom:1px solid var(--line);
+    font-family:"Helvetica Neue",Arial,sans-serif;
+  }
+  nav.toc ul{
+    display:flex;flex-wrap:wrap;gap:2px;list-style:none;margin:0;
+    max-width:1080px;padding:0 14px;margin:0 auto;
+  }
+  nav.toc a{
+    display:block;padding:13px 14px;font-size:.74rem;font-weight:600;
+    text-transform:uppercase;letter-spacing:.12em;color:var(--ink);text-decoration:none;
+    border-bottom:3px solid transparent;transition:.2s;
+  }
+  nav.toc a:hover{color:var(--coral);border-color:var(--coral);}
+
+  /* ---- Intro ---- */
+  .intro{padding:42px 0 8px;}
+  .intro p{font-size:1.12rem;max-width:62ch;}
+  .legend{
+    display:flex;flex-wrap:wrap;gap:18px;margin:26px 0 4px;
+    font-family:"Helvetica Neue",Arial,sans-serif;font-size:.82rem;
+  }
+  .legend span{display:inline-flex;align-items:center;gap:8px;}
+  .dot{width:13px;height:13px;border-radius:50%;border:2px solid var(--ink);}
+  .dot.stay{background:var(--plum);}
+  .dot.inlaw{background:var(--sun);}
+  .dot.family{background:var(--reef);}
+  .dot.dive{background:var(--coral);}
+
+  /* ---- Sections ---- */
+  section{padding:46px 0 8px;scroll-margin-top:58px;}
+  .sec-head{display:flex;align-items:baseline;gap:16px;margin-bottom:6px;}
+  .sec-num{
+    font-family:"Helvetica Neue",Arial,sans-serif;font-weight:700;font-size:.8rem;
+    letter-spacing:.2em;color:var(--coral);border:1.5px solid var(--coral);
+    border-radius:30px;padding:4px 12px;white-space:nowrap;
+  }
+  h2{font-size:clamp(1.8rem,4.4vw,2.7rem);margin:0;font-weight:400;letter-spacing:-.01em;}
+  h2 .jp{font-size:.5em;color:var(--sea);letter-spacing:.08em;margin-left:.5em;font-family:"Helvetica Neue",Arial,sans-serif;}
+  .sec-blurb{max-width:60ch;color:#3a4750;margin:10px 0 26px;font-size:1.04rem;}
+
+  .grid{display:grid;gap:18px;grid-template-columns:repeat(auto-fit,minmax(270px,1fr));}
+  .card{
+    background:#fbf6ec;border:1px solid var(--line);border-radius:4px;
+    padding:22px 22px 20px;box-shadow:var(--shadow);position:relative;
+    border-top:4px solid var(--sea);transition:transform .18s,box-shadow .18s;
+  }
+  .card:hover{transform:translateY(-3px);box-shadow:0 24px 48px -26px rgba(14,74,87,.6);}
+  .card.tag-inlaw{border-top-color:var(--sun);}
+  .card.tag-family{border-top-color:var(--reef);}
+  .card.tag-dive{border-top-color:var(--coral);}
+  .card.tag-stay{border-top-color:var(--plum);}
+  .card h3{margin:0 0 4px;font-size:1.28rem;font-weight:600;}
+  .card .meta{
+    font-family:"Helvetica Neue",Arial,sans-serif;font-size:.72rem;text-transform:uppercase;
+    letter-spacing:.1em;color:var(--sea-deep);margin-bottom:10px;
+  }
+  .card p{margin:0 0 12px;font-size:.97rem;color:#34424b;}
+  .card .why{font-size:.92rem;color:var(--ink);background:rgba(29,111,128,.07);
+    border-left:3px solid var(--sea);padding:8px 12px;border-radius:0 4px 4px 0;margin:0 0 12px;}
+  .card .price{font-family:"Helvetica Neue",Arial,sans-serif;font-size:.9rem;font-weight:600;
+    color:var(--sea-deep);margin:0 0 12px;display:flex;align-items:baseline;gap:7px;}
+  .card .price .num{font-size:1.18rem;color:var(--coral);}
+  .card .price .approx{font-size:.66rem;font-weight:700;letter-spacing:.06em;text-transform:uppercase;
+    color:#8a7a64;border:1px solid #cdbfa6;border-radius:20px;padding:2px 7px;}
+  .card .links{font-family:"Helvetica Neue",Arial,sans-serif;font-size:.78rem;display:flex;gap:14px;flex-wrap:wrap;}
+  .card .links a{color:var(--coral);text-decoration:none;font-weight:600;border-bottom:1px solid transparent;}
+  .card .links a:hover{border-color:var(--coral);}
+  .pill{display:inline-block;font-family:"Helvetica Neue",Arial,sans-serif;font-size:.64rem;
+    font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:3px 9px;border-radius:30px;
+    background:var(--ink);color:var(--paper);margin-left:8px;vertical-align:middle;}
+  .pill.easy{background:var(--reef);}
+  .pill.signature{background:var(--coral);}
+  .pill.splurge{background:var(--plum);}
+
+  .note{
+    background:var(--paper-deep);border:1px dashed var(--sea);border-radius:4px;
+    padding:14px 18px;font-size:.93rem;margin:22px 0 4px;color:#34424b;
+  }
+  .note b{color:var(--sea-deep);}
+
+  /* ---- Agenda ---- */
+  .agenda{display:grid;gap:14px;margin-top:8px;}
+  .day{
+    background:#fbf6ec;border:1px solid var(--line);border-radius:4px;
+    box-shadow:var(--shadow);overflow:hidden;display:grid;
+    grid-template-columns:118px 1fr;
+  }
+  @media(max-width:560px){.day{grid-template-columns:1fr;}}
+  .day-tab{
+    background:var(--sea-deep);color:var(--paper);padding:18px 16px;
+    display:flex;flex-direction:column;justify-content:center;
+  }
+  .day-tab .dn{font-family:"Helvetica Neue",Arial,sans-serif;font-size:.64rem;font-weight:700;
+    letter-spacing:.2em;text-transform:uppercase;color:var(--sun);}
+  .day-tab .dt{font-size:1.34rem;line-height:1.1;margin-top:4px;}
+  @media(max-width:560px){.day-tab{flex-direction:row;align-items:baseline;gap:10px;padding:12px 16px;}.day-tab .dt{font-size:1.1rem;}}
+  .day-body{padding:16px 20px;}
+  .track{display:flex;gap:10px;padding:7px 0;border-bottom:1px dotted var(--line);align-items:flex-start;}
+  .track:last-child{border-bottom:none;}
+  .track .who{
+    font-family:"Helvetica Neue",Arial,sans-serif;font-size:.6rem;font-weight:700;letter-spacing:.06em;
+    text-transform:uppercase;padding:3px 8px;border-radius:20px;white-space:nowrap;
+    margin-top:2px;min-width:96px;text-align:center;color:#fff;
+  }
+  .who.w-all{background:var(--reef);}
+  .who.w-inlaw{background:var(--sun);color:var(--ink);}
+  .who.w-dive{background:var(--coral);}
+  .who.w-eve{background:var(--plum);}
+  .track .act{font-size:.97rem;color:#34424b;}
+  .track .act b{color:var(--ink);}
+
+  /* ---- Map ---- */
+  #map{height:540px;border:2px solid var(--ink);border-radius:6px;box-shadow:var(--shadow);
+    background:var(--paper-deep);}
+  .map-cap{font-family:"Helvetica Neue",Arial,sans-serif;font-size:.78rem;color:#56636b;margin:12px 0 0;}
+  .leaflet-popup-content{font-family:"Helvetica Neue",Arial,sans-serif;font-size:.86rem;line-height:1.45;}
+  .leaflet-popup-content b{font-size:.98rem;}
+  .leaflet-popup-content .cat{text-transform:uppercase;letter-spacing:.1em;font-size:.64rem;font-weight:700;}
+
+  /* ---- Footer ---- */
+  footer{margin-top:54px;border-top:3px solid var(--ink);background:var(--sea-deep);color:var(--paper);}
+  footer .wrap{padding:30px 22px;}
+  footer p{margin:0;font-size:.9rem;color:rgba(244,237,224,.82);font-family:"Helvetica Neue",Arial,sans-serif;}
+  footer .big{font-size:1.5rem;font-family:"Iowan Old Style",Georgia,serif;margin-bottom:8px;color:var(--sun);}
+  a{color:var(--coral);}
+</style>
+</head>
+<body>
+
+<header class="hero">
+  <div class="hero-inner">
+    <p class="kicker">Family Trip · July · After Taipei</p>
+    <h1>Okinawa,<br><em>one base</em>, many ways.</h1>
+    <p class="sub">A few days where Ahma &amp; Yehyeh can wander on foot, the boys can chase fish in easy water, and Chad can get out deep.</p>
+    <div class="stamp"><span class="b">沖縄</span><span class="s">Okinawa</span></div>
+  </div>
+</header>
+
+<nav class="toc">
+  <ul>
+    <li><a href="#stay">Where we stay</a></li>
+    <li><a href="#inlaws">For Ahma &amp; Yehyeh</a></li>
+    <li><a href="#everybody">For everybody</a></li>
+    <li><a href="#dive">Dive stuff (Chad)</a></li>
+    <li><a href="#agenda">Tentative agenda</a></li>
+    <li><a href="#map">The map</a></li>
+  </ul>
+</nav>
+
+<div class="wrap">
+
+  <div class="intro">
+    <p>The plan is a single base in <b>central Naha</b>, a couple of blocks off Kokusai-dori — the main walking street. From there, the in-laws never need a car, the family can day-trip to beaches and the aquarium, and Chad heads out by boat to the Kerama Islands to dive. Everything below is pinned on the map at the bottom.</p>
+    <div class="legend">
+      <span><span class="dot stay"></span> Where we stay</span>
+      <span><span class="dot inlaw"></span> Ahma &amp; Yehyeh</span>
+      <span><span class="dot family"></span> Everybody</span>
+      <span><span class="dot dive"></span> Chad's dives</span>
+    </div>
+  </div>
+
+  <!-- ================= STAY ================= -->
+  <section id="stay">
+    <div class="sec-head">
+      <span class="sec-num">01</span>
+      <h2>Where we'd all stay <span class="jp">那覇 / Naha</span></h2>
+    </div>
+    <p class="sec-blurb">All three sit within a short walk of Kokusai-dori and Makishi Market, so the walkable core is right outside the door. One base for the whole trip.</p>
+    <div class="grid">
+      <div class="card tag-stay">
+        <h3>Hyatt Regency Naha</h3>
+        <div class="meta">★ 4.4 · A block off Kokusai-dori</div>
+        <p>Larger rooms than you'd expect in Japan, international breakfast, helpful English-speaking staff, and a stone's throw from Kokusai-dori and Makishi Market. The reliable "everyone's comfortable" choice.</p>
+        <div class="price"><span class="num">~$130–200</span> / night <span class="approx">very rough</span></div>
+        <div class="why">Best balance of space + location for a multi-generation group.</div>
+        <div class="links"><a href="https://maps.google.com/?cid=8301034830577648922" target="_blank">Map ↗</a></div>
+      </div>
+      <div class="card tag-stay">
+        <h3>Hotel Palm Royal Resort <span class="pill">Pool</span></h3>
+        <div class="meta">★ 4.3 · Quiet end of Kokusai-dori</div>
+        <p>Recently refreshed rooms, a small pool with a restaurant, and a side-street spot that keeps the street noise down while staying steps from the action. Convenience stores all around.</p>
+        <div class="price"><span class="num">~$90–150</span> / night <span class="approx">very rough</span></div>
+        <div class="why">A pool for the 8-year-old + walkable; good mid-range value.</div>
+        <div class="links"><a href="https://maps.google.com/?cid=14029006150810542589" target="_blank">Map ↗</a></div>
+      </div>
+      <div class="card tag-stay">
+        <h3>Loisir Hotel Naha</h3>
+        <div class="meta">★ 4.0 · Nishi, near the port</div>
+        <p>Bigger, resort-style hotel with an on-site hot-spring bath and spacious rooms, closest to the airport. A little further from Kokusai-dori (a short taxi or ~15-min walk), so the trade is space-and-amenities vs. being right on the street.</p>
+        <div class="price"><span class="num">~$110–170</span> / night <span class="approx">very rough</span></div>
+        <div class="why">Pick if we want a bath/onsen and more room to spread out.</div>
+        <div class="links"><a href="https://maps.google.com/?cid=11257430556716490759" target="_blank">Map ↗</a></div>
+      </div>
+    </div>
+    <div class="note"><b>On the prices:</b> these are <b>very rough ballparks</b> for a base room — they'll shift a lot by room type, exact dates, and how far ahead we book, and July (peak + typhoon season) runs high. Treat them as relative signposts, not quotes; we'll get real numbers when we actually book, and should favor refundable rates and reserve early.</div>
+  </section>
+
+  <!-- ================= IN-LAWS ================= -->
+  <section id="inlaws">
+    <div class="sec-head">
+      <span class="sec-num">02</span>
+      <h2>Good stuff for Ahma &amp; Yehyeh <span class="jp">散歩 / a stroll</span></h2>
+    </div>
+    <p class="sec-blurb">All on foot from the hotel, all flat, all well-signed. Heavy Taiwanese tourism here means Chinese menus and some Mandarin-speaking staff are common — and Japan's calm, orderly streets make wandering on their own genuinely low-stress.</p>
+    <div class="grid">
+      <div class="card tag-inlaw">
+        <h3>Kokusai-dori</h3>
+        <div class="meta">★ 4.4 · The main street</div>
+        <p>The lively mile-long spine of Naha: souvenir shops, snack stands, cafés, department stores, ice cream, the occasional street performer. Flat and easy to walk, lively day and night.</p>
+        <div class="why">The anchor — they can wander it for hours and never lose their way.</div>
+      </div>
+      <div class="card tag-inlaw">
+        <h3>Makishi Public Market</h3>
+        <div class="meta">★ 4.1 · 2 min off Kokusai-dori · 8am–10pm</div>
+        <p>Pick fresh seafood downstairs and have the cooks upstairs prepare it for lunch. Pottery and glass-bead stalls too. A perfect leisurely midday anchor.</p>
+        <div class="why">Sit-down seafood lunch with zero planning, right in the walking zone.</div>
+      </div>
+      <div class="card tag-inlaw">
+        <h3>Heiwa-dori Arcade <span class="pill easy">Shaded</span></h3>
+        <div class="meta">★ 4.3 · Beside Kokusai-dori</div>
+        <p>A covered shopping arcade threading off the main street — souvenirs, snacks, slow browsing. The roof matters in July: shade from sun and shelter from sudden rain.</p>
+        <div class="why">Weatherproof browsing — the hot-afternoon / rain-shower backup.</div>
+      </div>
+      <div class="card tag-inlaw">
+        <h3>Shuri Castle <span class="pill">Optional outing</span></h3>
+        <div class="meta">★ 4.2 · ~20 min by monorail + walk</div>
+        <p>The Ryukyu Kingdom's hilltop royal castle, with greenery, stone-paved paths and city views. The main hall is mid-reconstruction after the 2019 fire, but the grounds are open and rewarding.</p>
+        <div class="why">A gentle half-day with history + views if they want one trip out.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ================= EVERYBODY ================= -->
+  <section id="everybody">
+    <div class="sec-head">
+      <span class="sec-num">03</span>
+      <h2>Good stuff for everybody <span class="jp">家族 / all of us</span></h2>
+    </div>
+    <p class="sec-blurb">Things that work for the whole crew — including an 8-year-old. Easy water where the snorkeling is gentle, the headline aquarium, and a couple of good meals. "Easy" beaches below have netted swim zones and/or lifeguards.</p>
+    <div class="grid">
+      <div class="card tag-family">
+        <h3>Okinawa Churaumi Aquarium <span class="pill signature">Must-do</span></h3>
+        <div class="meta">★ 4.6 · Motobu, ~2 hr north · 8:30am–6:30pm</div>
+        <p>One of the world's great aquariums: the giant Kuroshio tank with whale sharks and manta rays, plus free outdoor dolphin shows, touch pools, turtles and manatees. Indoors, so it's also the perfect rainy-day plan.</p>
+        <div class="why">The single best all-ages day. An 8-year-old will lose his mind (good way).</div>
+        <div class="links"><a href="https://churaumi.okinawa/en/" target="_blank">Official site ↗</a></div>
+      </div>
+      <div class="card tag-family">
+        <h3>Naminoue Beach <span class="pill easy">Easiest</span></h3>
+        <div class="meta">★ 4.0 · In Naha — short bus/taxi</div>
+        <p>The city beach: lifeguards on duty, a netted swim area (important in box-jellyfish season), calm clean water, showers and food trucks. Not wild nature — there's a highway overpass — but unbeatably easy with a kid.</p>
+        <div class="why">Zero-effort swim within reach of the hotel. The default beach.</div>
+      </div>
+      <div class="card tag-family">
+        <h3>Zanpa / Cape Maeda area <span class="pill easy">Snorkel</span></h3>
+        <div class="meta">★ 4.6 · Onna coast, ~1 hr</div>
+        <p>Crystal water and lots of fish right off the rocks; vendors rent life jackets and floats. Gets deep fairly quickly, so the 8-year-old stays in a vest and we go at high tide — but the fish life is a big step up from the city beach.</p>
+        <div class="why">Where the family sees real reef fish; also Chad's shore-dive backup (see §4).</div>
+      </div>
+      <div class="card tag-family">
+        <h3>Sesoko Beach <span class="pill easy">Netted zone</span></h3>
+        <div class="meta">★ 4.3 · Motobu, near aquarium · 9am–5pm</div>
+        <p>Soft sand, clear shallow water, a netted safe-swim area with small fish, plus chair/umbrella rentals. Pair it with the aquarium for one big northern day.</p>
+        <div class="why">Combine with Churaumi → one outstanding all-ages day up north.</div>
+      </div>
+      <div class="card tag-family">
+        <h3>Kuninda <span class="pill splurge">Nice dinner</span></h3>
+        <div class="meta">★ 4.8 · Off Kokusai-dori</div>
+        <p>Refined, modern Ryukyu tasting-menu cuisine with warm service that walks you through each dish. Formal-looking but reportedly welcoming to kids — book ahead and you may get a private room.</p>
+        <div class="why">The one special family dinner. Reserve in advance.</div>
+      </div>
+      <div class="card tag-family">
+        <h3>Kokusai-dori izakayas</h3>
+        <div class="meta">Casual · all over the main street</div>
+        <p>For relaxed nights: Okinawan classics like rafute (braised pork belly), goya champuru, taco rice and Orion beer at any number of casual spots right on the street. Easy, kid-friendly, no reservations.</p>
+        <div class="why">The low-key default dinners between the bigger outings.</div>
+      </div>
+    </div>
+    <div class="note"><b>July water note:</b> box jellyfish are around in summer — stick to <b>netted swim zones</b> with the little one, and life vests for everyone snorkeling.</div>
+  </section>
+
+  <!-- ================= DIVE ================= -->
+  <section id="dive">
+    <div class="sec-head">
+      <span class="sec-num">04</span>
+      <h2>Dive stuff for Chad <span class="jp">素潜り / skin diving</span></h2>
+    </div>
+    <p class="sec-blurb">The whole range exists here: dedicated <b>skin-diving</b> (freediving) day trips, full AIDA freediving courses, and scuba-first shops that'll boat you to the Keramas. Plan is mostly freediving with a scuba day or two. Key phrase when booking: ask for <b>"skin diving" (スキンダイビング)</b> with real breath-hold safety — not surface snorkeling.</p>
+    <div class="grid">
+      <div class="card tag-dive">
+        <h3>Kerama Islands <span class="pill signature">The prize</span></h3>
+        <div class="meta">Boat from Naha · "Kerama Blue"</div>
+        <p>World-class visibility (30m+), coral gardens, turtles. The main event — operators run their own boats out from Naha, so it's a day trip from our base.</p>
+        <div class="why">Where Chad spends his best water days.</div>
+      </div>
+      <div class="card tag-dive">
+        <h3>DIVEIN Okinawa <span class="pill">Top pick · scuba</span></h3>
+        <div class="meta">★ 5.0 · Tsuboya · ~10 min from hotel</div>
+        <p>Excellent English, hotel pickup in Naha, Kerama boat dives, great with first-timers and solo divers. Walking distance from the Kokusai-dori base. Fills up — email well ahead.</p>
+        <div class="why">The easy scuba day(s). Books out early.</div>
+        <div class="links"><a href="http://www.diveinokinawa.com/" target="_blank">Site ↗</a></div>
+      </div>
+      <div class="card tag-dive">
+        <h3>BlueVistaDive <span class="pill">Multilingual</span></h3>
+        <div class="meta">★ 4.9 · Urasoe · just north</div>
+        <p>Lead instructor has 10+ years on the Keramas and works in several languages including Mandarin/Chinese; hotel pickup included. Strong if a Chinese-speaking guide is useful.</p>
+        <div class="why">Backup scuba option with language flexibility.</div>
+        <div class="links"><a href="https://bluevistadive.com/" target="_blank">Site ↗</a></div>
+      </div>
+      <div class="card tag-dive">
+        <h3>Freediving / AIDA school <span class="pill">Breath-hold</span></h3>
+        <div class="meta">Naha-area · apnea-specific</div>
+        <p>Dedicated freediving schools run AIDA courses with depth sessions (~20m), dynamic apnea, and proper one-up-one-down buddy safety — the right call for at least one day so the safety culture matches real breath-hold diving.</p>
+        <div class="why">For pushing depth properly, not being capped at snorkel level.</div>
+      </div>
+      <div class="card tag-dive">
+        <h3>Cape Maeda / Blue Cave <span class="pill easy">Backup</span></h3>
+        <div class="meta">★ 4.4 · Onna · ~1 hr · shore entry</div>
+        <p>Iconic shore-entry site with the Blue Cave and turtles, reachable by car/bus with no ferry. The weather plan-B when seas are too rough for the Kerama boats.</p>
+        <div class="why">No-ferry fallback on rough days — and the family can come too.</div>
+      </div>
+    </div>
+    <div class="note"><b>Two caveats:</b> (1) These are reef-diving operators, <b>not spearfishing</b> — SoCal-style spearing rules don't apply here, local fishing rights are restrictive, so treat this as reef freediving. (2) Keep Kerama dive days <b>flexible</b> in July; don't book the boat as the very last thing before flights.</div>
+  </section>
+
+  <!-- ================= AGENDA ================= -->
+  <section id="agenda">
+    <div class="sec-head">
+      <span class="sec-num">05</span>
+      <h2>A tentative agenda <span class="jp">(just to illustrate)</span></h2>
+    </div>
+    <p class="sec-blurb">A rough five-day shape to show how the pieces fit — <b>not a plan we're committed to</b>. The point is that on most days the in-laws stay close to the walkable core while the rest of us range out, and Chad's dive days slot in without stranding anyone. We'd shuffle this freely around weather and how everyone's feeling.</p>
+    <div class="agenda">
+
+      <div class="day">
+        <div class="day-tab"><span class="dn">Day 1</span><span class="dt">Arrive &amp; settle</span></div>
+        <div class="day-body">
+          <div class="track"><span class="who w-all">Everybody</span><span class="act">Fly in from Taipei, check into the Naha base, easy first wander down <b>Kokusai-dori</b> to get oriented.</span></div>
+          <div class="track"><span class="who w-inlaw">Ahma &amp; Yehyeh</span><span class="act">Seafood lunch or dinner at <b>Makishi Market</b> — two minutes from the hotel, no planning needed.</span></div>
+          <div class="track"><span class="who w-eve">Evening</span><span class="act">Casual izakaya dinner on the main street — rafute, goya champuru, Orion beer.</span></div>
+        </div>
+      </div>
+
+      <div class="day">
+        <div class="day-tab"><span class="dn">Day 2</span><span class="dt">North &amp; the aquarium</span></div>
+        <div class="day-body">
+          <div class="track"><span class="who w-all">Everybody</span><span class="act">Big day trip north: <b>Churaumi Aquarium</b> (whale sharks, dolphin show) paired with <b>Sesoko Beach</b>'s netted swim zone nearby.</span></div>
+          <div class="track"><span class="who w-inlaw">Ahma &amp; Yehyeh</span><span class="act">Optional — join for the aquarium (lots of seating, indoors) or keep it low-key in Naha and shop the arcades.</span></div>
+        </div>
+      </div>
+
+      <div class="day">
+        <div class="day-tab"><span class="dn">Day 3</span><span class="dt">Chad dives · others mellow</span></div>
+        <div class="day-body">
+          <div class="track"><span class="who w-dive">Chad</span><span class="act">Boat day to the <b>Kerama Islands</b> — freediving / skin-diving (or a scuba day with DIVEIN). Hotel pickup, back by evening.</span></div>
+          <div class="track"><span class="who w-all">Wife &amp; son</span><span class="act">Easy in-town day: <b>Naminoue Beach</b> (lifeguards, netted) plus the hotel pool.</span></div>
+          <div class="track"><span class="who w-inlaw">Ahma &amp; Yehyeh</span><span class="act">Self-directed shopping day on Kokusai-dori &amp; <b>Heiwa-dori arcade</b> — all on foot.</span></div>
+          <div class="track"><span class="who w-eve">Evening</span><span class="act">The nice dinner: <b>Kuninda</b> (book ahead).</span></div>
+        </div>
+      </div>
+
+      <div class="day">
+        <div class="day-tab"><span class="dn">Day 4</span><span class="dt">Reef day &amp; history</span></div>
+        <div class="day-body">
+          <div class="track"><span class="who w-all">Everybody</span><span class="act">Drive to the <b>Onna coast</b>: family snorkeling at <b>Zanpa / Cape Maeda</b> (life vests, high tide) — also Chad's shore-dive backup if seas were rough.</span></div>
+          <div class="track"><span class="who w-inlaw">Ahma &amp; Yehyeh</span><span class="act">Alternative gentle outing: <b>Shuri Castle</b> grounds via monorail — greenery, views, paved paths.</span></div>
+        </div>
+      </div>
+
+      <div class="day">
+        <div class="day-tab"><span class="dn">Day 5</span><span class="dt">Buffer &amp; depart</span></div>
+        <div class="day-body">
+          <div class="track"><span class="who w-dive">Chad</span><span class="act">Flex day — a second Kerama dive <em>only</em> if weather held and it's not the morning of the flight.</span></div>
+          <div class="track"><span class="who w-all">Everybody</span><span class="act">Last market run for souvenirs / snacks, then onward travel. Keep this loose as the typhoon-season buffer.</span></div>
+        </div>
+      </div>
+
+    </div>
+    <div class="note"><b>Why it's built this way:</b> dive days are kept off the front and back of the trip so a weather cancellation has somewhere to slide, and the in-laws always have a walkable fallback on the days the rest of us travel.</div>
+  </section>
+
+  <!-- ================= MAP ================= -->
+  <section id="map">
+    <div class="sec-head">
+      <span class="sec-num">06</span>
+      <h2>Everything on one map <span class="jp">地図</span></h2>
+    </div>
+    <p class="sec-blurb">Color-coded by who it's for. The tight cluster in central Naha is our walkable base; the pins fanning north and west are day-trips and dive sites.</p>
+    <div id="map"></div>
+    <p class="map-cap">Tap any pin for details. Purple = lodging · Gold = Ahma &amp; Yehyeh · Green = everybody · Coral = Chad's dives.</p>
+  </section>
+
+</div>
+
+<footer>
+  <div class="wrap">
+    <p class="big">沖縄 · See you in the water.</p>
+    <p>Draft itinerary — nothing booked yet. Send notes and we'll iterate.</p>
+  </div>
+</footer>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+  var COLORS={stay:"#8a5a78",inlaw:"#e8b04b",family:"#5a9e7a",dive:"#d9603b"};
+  var places=[
+    // STAY
+    {n:"Hyatt Regency Naha",c:"stay",lat:26.2144647,lng:127.6899541,d:"Where we stay · ★4.4 · block off Kokusai-dori"},
+    {n:"Hotel Palm Royal Resort",c:"stay",lat:26.2164099,lng:127.6896973,d:"Where we stay · ★4.3 · pool, quiet side street"},
+    {n:"Loisir Hotel Naha",c:"stay",lat:26.213692,lng:127.6658928,d:"Where we stay · ★4.0 · onsen bath, near port"},
+    // IN-LAWS
+    {n:"Kokusai-dori",c:"inlaw",lat:26.2151469,lng:127.684745,d:"Ahma & Yehyeh · the main walking street"},
+    {n:"Makishi Public Market",c:"inlaw",lat:26.2145927,lng:127.6883013,d:"Ahma & Yehyeh · seafood lunch · 8am–10pm"},
+    {n:"Heiwa-dori Arcade",c:"inlaw",lat:26.2164647,lng:127.6888437,d:"Ahma & Yehyeh · covered/shaded shopping"},
+    {n:"Shuri Castle",c:"inlaw",lat:26.2170449,lng:127.7194833,d:"Ahma & Yehyeh · Ryukyu castle, ~20 min by monorail"},
+    // FAMILY
+    {n:"Okinawa Churaumi Aquarium",c:"family",lat:26.694338,lng:127.8780131,d:"Everybody · whale sharks · ~2 hr north · must-do"},
+    {n:"Naminoue Beach",c:"family",lat:26.2212041,lng:127.6720664,d:"Everybody · easiest beach, lifeguards + net, in Naha"},
+    {n:"Zanpa / Cape Maeda Beach",c:"family",lat:26.4413757,lng:127.7676524,d:"Everybody · snorkeling, lots of fish · ~1 hr"},
+    {n:"Sesoko Beach",c:"family",lat:26.6499375,lng:127.8563125,d:"Everybody · netted swim zone · near aquarium"},
+    {n:"Kuninda (dinner)",c:"family",lat:26.2138935,lng:127.6816829,d:"Everybody · ★4.8 Ryukyu tasting menu · book ahead"},
+    // DIVE
+    {n:"DIVEIN Okinawa",c:"dive",lat:26.2125031,lng:127.6954606,d:"Chad · ★5.0 scuba · 10 min from hotel · Kerama trips"},
+    {n:"BlueVistaDive",c:"dive",lat:26.2398845,lng:127.7022404,d:"Chad · ★4.9 · multilingual · Kerama trips"},
+    {n:"Cape Maeda / Blue Cave",c:"dive",lat:26.4450618,lng:127.7714252,d:"Chad · shore-entry dive · weather backup"},
+    {n:"Kerama Islands (boat)",c:"dive",lat:26.2289873,lng:127.3027695,d:"Chad · 'Kerama Blue' · reached by boat from Naha"}
+  ];
+
+  var map=L.map('map',{scrollWheelZoom:false}).setView([26.45,127.72],10);
+  L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png',{
+    attribution:'© OpenStreetMap · © CARTO',maxZoom:19
+  }).addTo(map);
+
+  var bounds=[];
+  places.forEach(function(p){
+    var col=COLORS[p.c];
+    var marker=L.circleMarker([p.lat,p.lng],{
+      radius:9,fillColor:col,color:"#13202b",weight:2,opacity:1,fillOpacity:.92
+    }).addTo(map);
+    marker.bindPopup('<span class="cat" style="color:'+col+'">'+p.c.toUpperCase()+'</span><br><b>'+p.n+'</b><br>'+p.d);
+    marker.on('mouseover',function(){this.openPopup();});
+    bounds.push([p.lat,p.lng]);
+  });
+  map.fitBounds(bounds,{padding:[40,40]});
+  map.once('focus',function(){map.scrollWheelZoom.enable();});
+</script>
+</body>
+</html>
